@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#08080E">
+<title>VagaRadar — Demo | Tour Guiado</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#08080E;--bg2:#0F0F17;--bg3:#14141E;--bg4:#1A1A26;
+  --b1:rgba(255,255,255,0.06);--b2:rgba(255,255,255,0.11);--b3:rgba(255,255,255,0.18);
+  --ac:#7C6FFF;--ac2:#A594FF;--glow:rgba(124,111,255,0.2);
+  --gr:#1FD189;--grbg:rgba(31,209,137,0.1);--grb:rgba(31,209,137,0.25);
+  --pk:#FF6B9D;--pkbg:rgba(255,107,157,0.1);
+  --am:#FFB547;--ambg:rgba(255,181,71,0.1);
+  --bl:#4FC3F7;--blbg:rgba(79,195,247,0.1);
+  --or:#FF7043;--orbg:rgba(255,112,67,0.1);
+  --tx:#EEEEF8;--tx2:#8888A8;--tx3:#50506A;
+  --r:10px;--rl:14px;--rx:18px;
+  --fd:'Space Grotesk',sans-serif;--fb:'Inter',sans-serif;
+  --safe-b:env(safe-area-inset-bottom,0px);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+body{background:var(--bg);color:var(--tx);font-family:var(--fb);font-size:14px;line-height:1.6;overflow-x:hidden}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:2px}
+button,input,select,textarea{-webkit-appearance:none;appearance:none;font-family:var(--fb)}
+
+/* ══════════════════════════════════════════
+   TOUR SYSTEM
+══════════════════════════════════════════ */
+
+/* WELCOME SCREEN */
+.welcome{position:fixed;inset:0;z-index:9999;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:24px;transition:opacity .4s,transform .4s}
+.welcome.hide{opacity:0;pointer-events:none;transform:scale(.97)}
+.welcome-card{background:var(--bg2);border:0.5px solid var(--b2);border-radius:var(--rx);padding:32px 24px;max-width:420px;width:100%;text-align:center;position:relative;overflow:hidden}
+.welcome-card::before{content:'';position:absolute;top:-60px;left:50%;transform:translateX(-50%);width:300px;height:220px;background:radial-gradient(ellipse,rgba(124,111,255,0.2),transparent 70%);pointer-events:none}
+.welcome-logo{width:64px;height:64px;background:linear-gradient(135deg,var(--ac),var(--ac2));border-radius:20px;display:flex;align-items:center;justify-content:center;font-size:28px;margin:0 auto 20px;box-shadow:0 8px 32px var(--glow)}
+.welcome-title{font-family:var(--fd);font-size:24px;font-weight:700;letter-spacing:-.02em;margin-bottom:8px}
+.welcome-grad{background:linear-gradient(135deg,var(--ac),var(--ac2) 45%,var(--pk));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.welcome-sub{font-size:13px;color:var(--tx2);line-height:1.7;margin-bottom:24px}
+.welcome-features{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:24px;text-align:left}
+.wf{background:var(--bg3);border:0.5px solid var(--b1);border-radius:var(--r);padding:10px 12px;display:flex;align-items:center;gap:8px}
+.wf-icon{font-size:18px;flex-shrink:0}
+.wf-text{font-size:11px;color:var(--tx2);line-height:1.4}
+.wf-title{font-size:11px;font-weight:600;color:var(--tx);display:block;margin-bottom:1px}
+.btn-tour{width:100%;padding:14px;border-radius:var(--r);border:none;background:linear-gradient(135deg,var(--ac),var(--ac2));color:#fff;font-family:var(--fd);font-size:15px;font-weight:700;cursor:pointer;box-shadow:0 4px 20px var(--glow);display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:10px;transition:opacity .15s}
+.btn-tour:active{opacity:.88}
+.btn-skip{width:100%;padding:10px;border-radius:var(--r);border:0.5px solid var(--b2);background:transparent;color:var(--tx3);font-size:13px;cursor:pointer;transition:all .15s}
+.btn-skip:active{color:var(--tx2)}
+
+/* TOUR OVERLAY */
+.tour-overlay{position:fixed;inset:0;z-index:8000;pointer-events:none}
+.tour-backdrop{position:absolute;inset:0;background:rgba(0,0,0,0);transition:background .3s}
+.tour-backdrop.active{background:rgba(0,0,0,0.75);pointer-events:all}
+
+/* TOUR SPOTLIGHT */
+.tour-spotlight{position:absolute;border-radius:var(--rl);box-shadow:0 0 0 9999px rgba(0,0,0,0.78);transition:all .4s cubic-bezier(.4,0,.2,1);pointer-events:none;border:2px solid var(--ac);animation:spotlight-pulse 2s infinite}
+@keyframes spotlight-pulse{0%,100%{box-shadow:0 0 0 9999px rgba(0,0,0,0.78),0 0 0 0 rgba(124,111,255,.4)}50%{box-shadow:0 0 0 9999px rgba(0,0,0,0.78),0 0 0 8px rgba(124,111,255,0)}}
+
+/* TOUR TOOLTIP */
+.tour-tip{position:absolute;background:var(--bg2);border:0.5px solid rgba(124,111,255,0.4);border-radius:var(--rx);padding:18px 18px 16px;max-width:300px;width:calc(100vw - 40px);z-index:8001;pointer-events:all;box-shadow:0 16px 48px rgba(0,0,0,.7);transition:all .35s cubic-bezier(.4,0,.2,1)}
+.tour-tip::before{content:'';position:absolute;width:10px;height:10px;background:var(--bg2);border:0.5px solid rgba(124,111,255,0.4);transform:rotate(45deg)}
+.tour-tip.tip-bottom::before{top:-6px;left:24px;border-bottom:none;border-right:none}
+.tour-tip.tip-top::before{bottom:-6px;left:24px;border-top:none;border-left:none}
+.tour-tip.tip-left::before{right:-6px;top:20px;border-left:none;border-bottom:none}
+
+.tip-step{font-size:10px;font-weight:600;color:var(--ac2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;display:flex;align-items:center;gap:6px}
+.tip-step-dots{display:flex;gap:4px}
+.tip-dot{width:6px;height:6px;border-radius:50%;background:var(--b2);transition:background .2s}
+.tip-dot.on{background:var(--ac)}
+.tip-emoji{font-size:22px;margin-bottom:8px;display:block}
+.tip-title{font-family:var(--fd);font-size:15px;font-weight:700;color:var(--tx);margin-bottom:5px}
+.tip-desc{font-size:12px;color:var(--tx2);line-height:1.7;margin-bottom:14px}
+.tip-highlight{background:rgba(124,111,255,0.1);border:0.5px solid rgba(124,111,255,0.2);border-radius:var(--r);padding:8px 10px;font-size:11px;color:var(--ac2);margin-bottom:14px;line-height:1.6}
+.tip-highlight strong{color:var(--ac3)}
+.tip-btns{display:flex;gap:7px}
+.tip-prev{flex:1;padding:9px;border-radius:var(--r);border:0.5px solid var(--b2);background:transparent;color:var(--tx3);font-size:12px;cursor:pointer;transition:all .15s}
+.tip-prev:active{color:var(--tx)}
+.tip-next{flex:2;padding:9px;border-radius:var(--r);border:none;background:linear-gradient(135deg,var(--ac),var(--ac2));color:#fff;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;font-family:var(--fd);transition:opacity .15s}
+.tip-next:active{opacity:.88}
+.tip-finish{flex:2;padding:9px;border-radius:var(--r);border:none;background:linear-gradient(135deg,var(--gr),#16a865);color:#fff;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;font-family:var(--fd)}
+
+/* TOUR BUTTON (re-abre tour) */
+.tour-btn-float{position:fixed;bottom:calc(24px + var(--safe-b));right:16px;z-index:500;width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--ac),var(--ac2));border:none;color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 20px var(--glow);display:flex;align-items:center;justify-content:center;transition:all .2s}
+.tour-btn-float:active{transform:scale(.92)}
+.tour-btn-float.hidden{opacity:0;pointer-events:none}
+
+/* ══════════════════════════════════════════
+   APP STYLES
+══════════════════════════════════════════ */
+.demo-banner{background:linear-gradient(135deg,rgba(124,111,255,0.12),rgba(255,107,157,0.08));border-bottom:0.5px solid rgba(124,111,255,0.2);padding:9px 16px;display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;text-align:center}
+.demo-tag{background:rgba(124,111,255,0.2);border:0.5px solid rgba(124,111,255,0.35);border-radius:99px;padding:3px 10px;font-size:10px;font-weight:700;color:var(--ac2);letter-spacing:.06em;text-transform:uppercase}
+.demo-banner span{font-size:11px;color:var(--tx2)}
+.demo-banner strong{color:var(--ac2)}
+
+.topbar{position:sticky;top:0;z-index:60;width:100%;height:2px;background:var(--bg4)}
+.topbar-fill{height:2px;background:linear-gradient(90deg,var(--ac),var(--pk),var(--gr));transition:width .6s linear}
+
+.hero{position:relative;padding:32px 16px 22px;text-align:center;overflow:hidden}
+.hero::before{content:'';position:absolute;top:-60px;left:50%;transform:translateX(-50%);width:min(600px,150vw);height:320px;background:radial-gradient(ellipse,rgba(124,111,255,0.13),transparent 65%);pointer-events:none}
+.hero>*{position:relative;z-index:1}
+.eyebrow{display:inline-flex;align-items:center;gap:7px;background:rgba(124,111,255,0.08);border:0.5px solid rgba(124,111,255,0.22);border-radius:99px;padding:5px 14px;font-size:11px;font-weight:500;color:var(--ac2);letter-spacing:.05em;text-transform:uppercase;margin-bottom:12px}
+.ldot{width:7px;height:7px;border-radius:50%;background:var(--gr);box-shadow:0 0 8px var(--gr);animation:pu 1.5s ease-in-out infinite;flex-shrink:0}
+@keyframes pu{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.75)}}
+.hero h1{font-family:var(--fd);font-size:clamp(22px,6vw,42px);font-weight:700;letter-spacing:-.02em;line-height:1.15;margin-bottom:8px}
+.grad{background:linear-gradient(135deg,var(--ac),var(--ac2) 45%,var(--pk));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.hero-sub{font-size:13px;color:var(--tx2);max-width:460px;margin:0 auto 10px;line-height:1.7}
+.sal-badge{display:inline-flex;align-items:center;gap:6px;background:linear-gradient(135deg,var(--grbg),rgba(124,111,255,0.07));border:0.5px solid var(--grb);border-radius:99px;padding:6px 16px;font-size:13px;font-weight:600;color:var(--gr);margin-bottom:12px}
+.hero-meta{display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;font-size:11px;color:var(--tx3)}
+.hero-meta span{display:flex;align-items:center;gap:4px}
+
+.stats-wrap{padding:0 14px 14px;max-width:920px;margin:0 auto}
+.stats{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.st{background:var(--bg3);border:0.5px solid var(--b1);border-radius:var(--r);padding:10px 6px;text-align:center}
+.st-n{font-family:var(--fd);font-size:20px;font-weight:700;display:block}
+.st-l{font-size:9px;color:var(--tx3);text-transform:uppercase;letter-spacing:.05em;display:block;margin-top:2px}
+
+.srcs{display:flex;align-items:center;justify-content:center;gap:5px;padding:0 14px 14px;flex-wrap:wrap}
+.src{display:flex;align-items:center;gap:4px;background:var(--bg3);border:0.5px solid var(--b1);border-radius:99px;padding:3px 10px;font-size:10px;font-weight:500;color:var(--tx2)}
+.d2{width:5px;height:5px;border-radius:50%;flex-shrink:0}
+.si .d2{background:var(--gr)}.sl .d2{background:var(--bl)}.sg .d2{background:var(--ac2)}.sc .d2{background:var(--am)}.sj .d2{background:var(--or)}.se .d2{background:var(--pk)}
+
+.main{max-width:960px;margin:0 auto;padding:0 14px calc(80px + var(--safe-b))}
+
+.prog-bar-wrap{background:var(--bg2);border:0.5px solid var(--grb);border-radius:var(--rl);padding:11px 14px;margin-bottom:10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.prog-label{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--ac2);font-weight:600;display:flex;align-items:center;gap:5px;white-space:nowrap}
+.prog-counts{display:flex;gap:6px;flex-wrap:wrap}
+.pc{border-radius:99px;padding:3px 10px;font-size:11px;font-weight:600;white-space:nowrap}
+.pc-saved{background:rgba(124,111,255,0.12);border:0.5px solid rgba(124,111,255,0.25);color:var(--ac2)}
+.pc-sent{background:var(--grbg);border:0.5px solid var(--grb);color:var(--gr)}
+
+.controls{background:var(--bg2);border:0.5px solid var(--b1);border-radius:var(--rx);padding:12px;margin-bottom:10px;display:flex;flex-direction:column;gap:10px}
+.srow{display:flex;gap:7px}
+.sw{flex:1;position:relative;min-width:0}
+.sw svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);width:14px;height:14px;stroke:var(--tx3);fill:none;stroke-width:2;stroke-linecap:round}
+.sw input{width:100%;background:var(--bg3);border:0.5px solid var(--b1);border-radius:var(--r);padding:10px 10px 10px 33px;font-size:14px;color:var(--tx);outline:none;transition:border-color .2s}
+.sw input::placeholder{color:var(--tx3)}
+.sw input:focus{border-color:var(--ac)}
+.ssel{background:var(--bg3);border:0.5px solid var(--b1);border-radius:var(--r);padding:10px 8px;font-size:12px;color:var(--tx2);outline:none;cursor:pointer}
+.fsec{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.flbl{font-size:9px;text-transform:uppercase;letter-spacing:.07em;color:var(--tx3);font-weight:600;white-space:nowrap;min-width:36px}
+.chips{display:flex;gap:4px;flex-wrap:wrap}
+.chip{font-size:11px;padding:5px 11px;border-radius:99px;border:0.5px solid var(--b1);background:transparent;color:var(--tx3);cursor:pointer;transition:all .15s;white-space:nowrap;min-height:30px;display:flex;align-items:center}
+.chip:active{background:var(--bg3)}
+.chip.on{background:var(--ac);border-color:var(--ac);color:#fff;font-weight:600;box-shadow:0 0 12px var(--glow)}
+
+.trow{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.rcnt{font-size:11px;color:var(--tx2);white-space:nowrap}
+.pw{flex:1;height:2px;background:var(--bg4);border-radius:1px;overflow:hidden}
+.pb{height:2px;background:linear-gradient(90deg,var(--ac),var(--pk));border-radius:1px;transition:width .6s linear}
+.tinfo{font-size:11px;color:var(--tx3);display:flex;align-items:center;gap:3px;white-space:nowrap}
+.rbtn{display:flex;align-items:center;gap:4px;background:var(--bg3);border:0.5px solid var(--b2);border-radius:var(--r);padding:7px 11px;font-size:11px;color:var(--tx2);cursor:pointer;white-space:nowrap;min-height:34px}
+.rbtn:active{border-color:var(--ac);color:var(--ac)}
+
+.jgrid{display:flex;flex-direction:column;gap:8px}
+.jcard{background:var(--bg2);border:0.5px solid var(--b1);border-radius:var(--rx);padding:14px 14px 12px;transition:all .2s;position:relative;overflow:hidden}
+.jcard::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:3px 0 0 3px}
+.ci::before{background:var(--gr)}.cj::before{background:var(--or)}.cl::before{background:var(--bl)}.cg::before{background:var(--ac2)}.cc::before{background:var(--am)}.ce::before{background:var(--pk)}
+.jcard.saved-card{border-color:rgba(124,111,255,0.25);background:rgba(124,111,255,0.03)}
+.jcard.sent-card{border-color:rgba(31,209,137,0.2);background:rgba(31,209,137,0.02)}
+
+.jinfo{margin-bottom:10px}
+.jtitle{font-family:var(--fd);font-size:14px;font-weight:600;line-height:1.35;margin-bottom:3px}
+.jco{font-size:12px;color:var(--tx3);display:flex;align-items:center;gap:4px;margin-bottom:5px}
+.jdesc{font-size:11px;color:var(--tx3);line-height:1.55}
+.jtags{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px}
+.tag{font-size:10px;padding:3px 8px;border-radius:99px;font-weight:500;white-space:nowrap}
+.ta{background:rgba(124,111,255,.14);color:var(--ac2)}.ts{background:var(--pkbg);color:var(--pk)}.td{background:var(--grbg);color:var(--gr)}.tt{background:var(--blbg);color:var(--bl)}
+.tnv{background:var(--bg4);color:var(--tx2)}.tr{background:var(--pkbg);color:var(--pk);font-weight:600}.th{background:rgba(124,111,255,.1);color:var(--ac2)}.tp{background:var(--bg4);color:var(--tx3)}
+.tsal{background:var(--grbg);color:var(--gr);font-weight:600}.tnew{background:var(--ac);color:#fff;font-weight:700}.tsent{background:var(--grbg);color:var(--gr);font-weight:600}
+.tsi{background:var(--grbg);color:var(--gr)}.tsl{background:var(--blbg);color:var(--bl)}.tsg{background:rgba(124,111,255,.1);color:var(--ac2)}.tsc{background:var(--ambg);color:var(--am)}.tsj{background:var(--orbg);color:var(--or)}.tse{background:var(--pkbg);color:var(--pk)}
+
+.expiry-bar-wrap{width:100%;height:3px;background:var(--bg4);border-radius:2px;margin:6px 0 2px;overflow:hidden}
+.expiry-bar{height:3px;border-radius:2px}
+.expiry-label{font-size:9px;color:var(--tx3);margin-bottom:8px}
+
+.jbtns{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
+.bver,.bemail,.bsave{font-size:11px;padding:9px 6px;border-radius:var(--r);cursor:pointer;transition:all .15s;white-space:nowrap;display:flex;align-items:center;justify-content:center;gap:4px;min-height:38px;font-weight:500;text-decoration:none}
+.bver{border:0.5px solid var(--b2);background:transparent;color:var(--tx2)}
+.bver:active,.bver:hover{border-color:var(--gr);color:var(--gr);background:var(--grbg)}
+.bemail{border:0.5px solid var(--ac);background:rgba(124,111,255,0.1);color:var(--ac2)}
+.bemail:active,.bemail:hover{background:var(--ac);color:#fff}
+.bsave{border:0.5px solid var(--b1);background:transparent;color:var(--tx3)}
+.bsave:active,.bsave:hover,.bsave.saved-on{border-color:var(--am);color:var(--am);background:var(--ambg)}
+
+.jmeta{display:flex;align-items:center;gap:8px;font-size:10px;color:var(--tx3);flex-wrap:wrap;margin-top:10px;padding-top:10px;border-top:0.5px solid var(--b1)}
+.jmeta span{display:flex;align-items:center;gap:3px}
+.email-chip{font-size:10px;color:var(--ac2);background:rgba(124,111,255,.07);border:0.5px solid rgba(124,111,255,.18);border-radius:99px;padding:2px 7px;display:inline-flex;align-items:center;gap:3px}
+
+.empty{text-align:center;padding:48px 16px;color:var(--tx3)}
+.empty p{font-size:15px;color:var(--tx2);margin-top:10px}
+
+/* MODAL */
+.mo{position:fixed;inset:0;background:rgba(0,0,0,0.85);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);z-index:100;display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:opacity .22s}
+.mo.open{opacity:1;pointer-events:all}
+.md{background:var(--bg2);border:0.5px solid var(--b2);border-radius:var(--rx) var(--rx) 0 0;width:100%;max-width:640px;position:relative;max-height:92vh;overflow-y:auto;padding-bottom:var(--safe-b)}
+.md::before{content:'';display:block;width:36px;height:4px;background:var(--b3);border-radius:2px;margin:12px auto 0}
+.md-head{padding:12px 18px;border-bottom:0.5px solid var(--b1)}
+.md-body-wrap{padding:16px 18px 20px}
+.md-title{font-family:var(--fd);font-size:17px;font-weight:700;margin-bottom:2px}
+.md-sub{font-size:11px;color:var(--tx3)}
+.mclose{position:absolute;top:14px;right:14px;background:var(--bg4);border:0.5px solid var(--b1);border-radius:8px;width:30px;height:30px;cursor:pointer;color:var(--tx3);display:flex;align-items:center;justify-content:center;font-size:15px}
+.demo-note-box{background:rgba(124,111,255,0.08);border:0.5px solid rgba(124,111,255,0.2);border-radius:var(--r);padding:10px 12px;margin-bottom:12px;font-size:12px;color:var(--ac2);text-align:center}
+.dest-box{background:linear-gradient(135deg,var(--grbg),rgba(124,111,255,0.05));border:0.5px solid var(--grb);border-radius:var(--rl);padding:12px 14px;margin-bottom:12px;display:flex;align-items:center;gap:10px}
+.dest-icon{width:36px;height:36px;background:var(--grbg);border-radius:var(--r);display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
+.dest-info{flex:1;min-width:0}
+.dest-label{font-size:9px;text-transform:uppercase;letter-spacing:.07em;color:var(--gr);font-weight:600;margin-bottom:2px}
+.dest-email{font-size:14px;font-weight:600;color:var(--tx);font-family:var(--fd);word-break:break-all}
+.dest-co{font-size:11px;color:var(--tx3);margin-top:1px}
+.mf{margin-bottom:11px}
+.mf label{font-size:9px;text-transform:uppercase;letter-spacing:.07em;color:var(--tx3);font-weight:600;display:block;margin-bottom:4px}
+.mf input,.mf textarea{width:100%;background:var(--bg3);border:0.5px solid var(--b1);border-radius:var(--r);padding:10px 12px;font-size:14px;color:var(--tx);outline:none;resize:none;line-height:1.6}
+.mf input.ro{color:var(--tx2);background:var(--bg4)}
+.mhint{font-size:12px;color:var(--tx2);padding:10px 13px;background:var(--bg3);border-radius:var(--r);line-height:1.8;border-left:2px solid var(--gr)}
+.mhint strong{color:var(--gr)}
+.mhint ol{margin:5px 0 0 16px}
+.mhint li{margin-bottom:3px;font-size:12px}
+.mbtns{display:flex;gap:8px;margin-top:14px}
+.bcnl{flex:1;padding:13px;border-radius:var(--r);border:0.5px solid var(--b2);background:transparent;color:var(--tx2);cursor:pointer;font-size:14px;min-height:48px}
+.bsend{flex:2;padding:13px;border-radius:var(--r);border:none;background:linear-gradient(135deg,var(--ac),var(--ac2));color:#fff;cursor:pointer;font-family:var(--fd);font-size:15px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px;min-height:48px}
+.bsend:active{opacity:.88}
+
+.foot{border-top:0.5px solid var(--b1);padding:16px;max-width:960px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px}
+.foot span{font-size:10px;color:var(--tx3)}
+.foot a{color:var(--ac2);text-decoration:none}
+
+.toast{position:fixed;bottom:calc(80px + var(--safe-b));left:50%;transform:translateX(-50%) translateY(80px);background:var(--bg3);border:0.5px solid var(--ac);border-radius:var(--rl);padding:12px 18px;font-size:13px;color:var(--tx);z-index:400;opacity:0;transition:all .35s cubic-bezier(.34,1.56,.64,1);display:flex;align-items:center;gap:9px;box-shadow:0 12px 40px rgba(0,0,0,.6);max-width:calc(100vw - 32px)}
+.toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+.tdot{width:8px;height:8px;border-radius:50%;background:var(--gr);flex-shrink:0}
+
+@media(min-width:640px){
+  .hero{padding:48px 24px 32px}
+  .stats-wrap,.srcs,.main{padding-left:20px;padding-right:20px}
+  .main{padding-bottom:80px}
+  .mo{align-items:center}
+  .md{border-radius:var(--rx);max-width:580px;padding-bottom:0}
+  .md::before{display:none}
+  .welcome-card{padding:40px 32px}
+  .tour-tip{max-width:320px}
+}
+</style>
+</head>
+<body>
+
+<!-- ══ WELCOME SCREEN ══ -->
+<div class="welcome" id="welcome">
+  <div class="welcome-card">
+    <div class="welcome-logo">📡</div>
+    <div class="welcome-title">Bem-vindo ao<br><span class="welcome-grad">VagaRadar</span></div>
+    <p class="welcome-sub">Um sistema completo de gestão de vagas em tempo real — filtra, organiza, rastreia candidaturas e envia emails com um toque.</p>
+    <div class="welcome-features">
+      <div class="wf"><span class="wf-icon">🔍</span><div class="wf-text"><span class="wf-title">6 fontes ao vivo</span>Indeed, LinkedIn, Gupy e mais</div></div>
+      <div class="wf"><span class="wf-icon">✉️</span><div class="wf-text"><span class="wf-title">Email automático</span>Gmail abre pronto para envio</div></div>
+      <div class="wf"><span class="wf-icon">⭐</span><div class="wf-text"><span class="wf-title">Favoritos</span>Salve e rastreie candidaturas</div></div>
+      <div class="wf"><span class="wf-icon">🗑️</span><div class="wf-text"><span class="wf-title">Auto-limpeza</span>Vagas expiram em 3 dias</div></div>
+    </div>
+    <button class="btn-tour" onclick="startTour()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      Iniciar tour guiado
+    </button>
+    <button class="btn-skip" onclick="skipTour()">Explorar por conta própria</button>
+  </div>
+</div>
+
+<!-- ══ TOUR OVERLAY ══ -->
+<div class="tour-overlay" id="tourOverlay">
+  <div class="tour-backdrop" id="tourBackdrop"></div>
+  <div class="tour-spotlight" id="tourSpotlight" style="display:none"></div>
+  <div class="tour-tip" id="tourTip" style="display:none">
+    <div class="tip-step">
+      <span id="tipStepLabel">Passo 1 de 9</span>
+      <div class="tip-step-dots" id="tipDots"></div>
+    </div>
+    <span class="tip-emoji" id="tipEmoji">🎯</span>
+    <div class="tip-title" id="tipTitle">Título</div>
+    <div class="tip-desc" id="tipDesc">Descrição</div>
+    <div class="tip-highlight" id="tipHighlight" style="display:none"></div>
+    <div class="tip-btns">
+      <button class="tip-prev" id="tipPrev" onclick="prevStep()">← Anterior</button>
+      <button class="tip-next" id="tipNext" onclick="nextStep()">Próximo →</button>
+    </div>
+  </div>
+</div>
+
+<!-- BOTÃO FLUTUANTE PARA REABRIR TOUR -->
+<button class="tour-btn-float hidden" id="tourBtnFloat" onclick="startTour()" title="Ver tour novamente">?</button>
+
+<!-- ══ APP ══ -->
+<div class="demo-banner">
+  <span class="demo-tag">Demo</span>
+  <span>Sistema de gestão de vagas · <strong>Dados fictícios</strong> para demonstração · HTML + CSS + JS puro</span>
+</div>
+
+<div class="topbar"><div class="topbar-fill" id="tbar" style="width:0%"></div></div>
+
+<section class="hero" id="hero-section">
+  <div class="eyebrow"><span class="ldot"></span> Sistema de gestão de vagas · Demo público</div>
+  <h1>VagaRadar —<br><span class="grad">vagas em tempo real</span></h1>
+  <p class="hero-sub">Agrega vagas de 6 fontes diferentes com filtros inteligentes, emails prontos e rastreamento de candidaturas.</p>
+  <div class="sal-badge" id="sal-badge-el">💰 Faixa filtrada: R$ 3.500 – R$ 7.000</div>
+  <div class="hero-meta">
+    <span><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>24h · Auto-refresh 5min</span>
+    <span><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>Vagas expiram em 3 dias</span>
+  </div>
+</section>
+
+<div class="stats-wrap">
+  <div class="stats" id="stats-section">
+    <div class="st"><span class="st-n" id="st0">0</span><span class="st-l">Total</span></div>
+    <div class="st"><span class="st-n" id="st1">0</span><span class="st-l">MKT</span></div>
+    <div class="st"><span class="st-n" id="st2">0</span><span class="st-l">Social</span></div>
+    <div class="st"><span class="st-n" id="st3">0</span><span class="st-l">Design</span></div>
+    <div class="st"><span class="st-n" id="st4">0</span><span class="st-l">TI</span></div>
+  </div>
+</div>
+
+<div class="srcs" id="srcs-section">
+  <div class="src si"><span class="d2"></span>Indeed</div>
+  <div class="src sl"><span class="d2"></span>LinkedIn</div>
+  <div class="src sg"><span class="d2"></span>Gupy</div>
+  <div class="src sc"><span class="d2"></span>Catho</div>
+  <div class="src sj"><span class="d2"></span>Jobbol</div>
+  <div class="src se"><span class="d2"></span>Emprega Campinas</div>
+</div>
+
+<div class="main">
+  <div class="prog-bar-wrap" id="progress-section">
+    <span class="prog-label">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+      Progresso
+    </span>
+    <div class="prog-counts">
+      <span class="pc pc-saved">⭐ <span id="n-saved">0</span> salvas</span>
+      <span class="pc pc-sent">✉ <span id="n-sent">0</span> enviadas</span>
+    </div>
+  </div>
+
+  <div class="controls" id="controls-section">
+    <div class="srow">
+      <div class="sw" id="search-section">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="search" id="srch" placeholder="Buscar cargo, empresa...">
+      </div>
+      <select class="ssel" id="srt">
+        <option value="rec">Recentes</option>
+        <option value="sal">Salário</option>
+        <option value="az">A–Z</option>
+        <option value="saved">Salvas</option>
+      </select>
+    </div>
+    <div class="fsec" id="filter-area"><span class="flbl">Área</span><div class="chips">
+      <button class="chip on" data-g="a" onclick="setF('a','todas',this)">Todas</button>
+      <button class="chip" data-g="a" onclick="setF('a','marketing',this)">Marketing</button>
+      <button class="chip" data-g="a" onclick="setF('a','social',this)">Social</button>
+      <button class="chip" data-g="a" onclick="setF('a','design',this)">Design</button>
+      <button class="chip" data-g="a" onclick="setF('a','ti',this)">TI</button>
+    </div></div>
+    <div class="fsec" id="filter-nivel"><span class="flbl">Nível</span><div class="chips">
+      <button class="chip on" data-g="n" onclick="setF('n','todos',this)">Todos</button>
+      <button class="chip" data-g="n" onclick="setF('n','junior',this)">Júnior</button>
+      <button class="chip" data-g="n" onclick="setF('n','pleno',this)">Pleno</button>
+      <button class="chip" data-g="n" onclick="setF('n','senior',this)">Sênior</button>
+      <button class="chip" data-g="n" onclick="setF('n','coordenador',this)">Coord.</button>
+    </div></div>
+    <div class="fsec" id="filter-modo"><span class="flbl">Modo</span><div class="chips">
+      <button class="chip on" data-g="m" onclick="setF('m','todas',this)">Todos</button>
+      <button class="chip" data-g="m" onclick="setF('m','Remoto',this)">🌐 Remoto</button>
+      <button class="chip" data-g="m" onclick="setF('m','Híbrido',this)">⚡ Híbrido</button>
+      <button class="chip" data-g="m" onclick="setF('m','Presencial',this)">🏢 Presencial</button>
+    </div></div>
+    <div class="fsec" id="filter-fonte"><span class="flbl">Fonte</span><div class="chips">
+      <button class="chip on" data-g="f" onclick="setF('f','todas',this)">Todas</button>
+      <button class="chip" data-g="f" onclick="setF('f','Indeed',this)">Indeed</button>
+      <button class="chip" data-g="f" onclick="setF('f','LinkedIn',this)">LinkedIn</button>
+      <button class="chip" data-g="f" onclick="setF('f','Jobbol',this)">Jobbol</button>
+      <button class="chip" data-g="f" onclick="setF('f','Gupy',this)">Gupy</button>
+      <button class="chip" data-g="f" onclick="setF('f','Catho',this)">Catho</button>
+      <button class="chip" data-g="f" onclick="setF('f','Emprega Campinas',this)">Emprega CPS</button>
+    </div></div>
+  </div>
+
+  <div class="trow" id="refresh-section">
+    <span class="rcnt" id="fcnt">Carregando...</span>
+    <div class="pw"><div class="pb" id="pbar" style="width:0%"></div></div>
+    <div class="tinfo">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      <span id="cdtxt">5:00</span>
+    </div>
+    <button class="rbtn" onclick="doRefresh()">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+      Atualizar
+    </button>
+  </div>
+
+  <div class="jgrid" id="jlist"></div>
+</div>
+
+<div class="foot">
+  <span>VagaRadar Demo · Dados fictícios · HTML + CSS + JS</span>
+  <span id="ftime">Agora</span>
+</div>
+
+<!-- MODAL -->
+<div class="mo" id="modal">
+  <div class="md">
+    <button class="mclose" onclick="closeModal()">✕</button>
+    <div class="md-head">
+      <div class="md-title">✉ Email de candidatura</div>
+      <div class="md-sub" id="md-sub">—</div>
+    </div>
+    <div class="md-body-wrap">
+      <div class="demo-note-box">🔒 Demo — na versão real seu email e os dados da empresa são preenchidos automaticamente</div>
+      <div class="dest-box">
+        <div class="dest-icon">📨</div>
+        <div class="dest-info">
+          <div class="dest-label">Destinatário — RH / Recrutamento</div>
+          <div class="dest-email" id="md-para">—</div>
+          <div class="dest-co" id="md-co">—</div>
+        </div>
+      </div>
+      <div class="mf"><label>De</label><input class="ro" type="text" value="seuemail@gmail.com" readonly></div>
+      <div class="mf"><label>Assunto</label><input type="text" id="md-assunto" readonly></div>
+      <div class="mf"><label>Mensagem gerada automaticamente por área</label><textarea id="md-body" rows="9" readonly></textarea></div>
+      <div class="mhint"><strong>Como funciona na versão real:</strong>
+        <ol>
+          <li>Clique em <strong>✉ Email</strong> em qualquer vaga</li>
+          <li>Gmail abre com destinatário, assunto e mensagem prontos</li>
+          <li>Anexe o currículo e clique Enviar</li>
+        </ol>
+      </div>
+      <div class="mbtns">
+        <button class="bcnl" onclick="closeModal()">Fechar</button>
+        <button class="bsend" onclick="closeModal();showToast('Na versão real o Gmail abriria agora! 🚀')">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+          Abrir Gmail → (demo)
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"><span class="tdot"></span><span id="tmsg">Pronto!</span></div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+//  TOUR SYSTEM
+// ═══════════════════════════════════════════════════════
+const STEPS = [
+  {
+    target: 'sal-badge-el',
+    emoji: '💰',
+    title: 'Filtro salarial configurável',
+    desc: 'O sistema filtra automaticamente vagas dentro da faixa de salário que você definir. Vagas fora do intervalo são ocultadas sem você precisar fazer nada.',
+    highlight: '<strong>Neste demo:</strong> R$ 3.500 – R$ 7.000. Na versão real você define qualquer faixa que quiser.',
+    pos: 'bottom'
+  },
+  {
+    target: 'stats-section',
+    emoji: '📊',
+    title: 'Painel de estatísticas',
+    desc: 'Mostra em tempo real quantas vagas estão disponíveis agora, separadas por área. Os números atualizam automaticamente quando você aplica filtros.',
+    highlight: '<strong>Total</strong> = todas as vagas ativas · <strong>MKT</strong> = Marketing · <strong>Social</strong> = Social Media · <strong>Design</strong> · <strong>TI</strong>',
+    pos: 'bottom'
+  },
+  {
+    target: 'srcs-section',
+    emoji: '🌐',
+    title: 'Fontes monitoradas',
+    desc: 'O sistema agrega vagas de 6 plataformas diferentes ao mesmo tempo. Cada fonte tem uma cor própria — a borda lateral de cada vaga indica de qual plataforma ela veio.',
+    highlight: '🟢 Indeed · 🔵 LinkedIn · 🟣 Gupy · 🟡 Catho · 🟠 Jobbol · 🩷 Emprega Campinas',
+    pos: 'bottom'
+  },
+  {
+    target: 'progress-section',
+    emoji: '⭐',
+    title: 'Rastreador de progresso',
+    desc: 'Acompanhe sua jornada de candidatura. Salve vagas de interesse com ⭐ e o sistema registra quantos emails você já enviou.',
+    highlight: '<strong>Salvas</strong> = vagas que você marcou para candidatar · <strong>Enviadas</strong> = emails disparados via Gmail',
+    pos: 'bottom'
+  },
+  {
+    target: 'search-section',
+    emoji: '🔍',
+    title: 'Busca inteligente',
+    desc: 'Digite qualquer palavra e o sistema filtra por cargo, empresa ou descrição da vaga instantaneamente. Ao lado, ordene por mais recentes, maior salário ou empresa A–Z.',
+    highlight: 'Tente buscar: <strong>"pleno"</strong>, <strong>"remoto"</strong> ou <strong>"design"</strong>',
+    pos: 'bottom'
+  },
+  {
+    target: 'filter-area',
+    emoji: '🏷️',
+    title: 'Filtros por área e nível',
+    desc: 'Filtre vagas por área de atuação (Marketing, Social Media, Design ou TI) e por nível de senioridade (Júnior, Pleno, Sênior ou Coordenador). Os filtros combinam entre si.',
+    highlight: 'Exemplo: <strong>Social + Pleno + Remoto</strong> mostra só vagas de Social Media Pleno em modo remoto.',
+    pos: 'bottom'
+  },
+  {
+    target: 'filter-fonte',
+    emoji: '📡',
+    title: 'Filtro por fonte',
+    desc: 'Prefere vagas só do LinkedIn? Ou só do Indeed? Filtre por plataforma com um toque. Útil para focar em fontes que têm mais vagas da sua área.',
+    highlight: 'Todas as fontes são monitoradas ao mesmo tempo — o filtro apenas exibe as que você quer ver.',
+    pos: 'top'
+  },
+  {
+    target: 'refresh-section',
+    emoji: '⏱️',
+    title: 'Auto-refresh e contagem regressiva',
+    desc: 'A barra de progresso mostra o tempo até a próxima atualização automática — a cada 5 minutos o sistema busca vagas novas. Você também pode atualizar manualmente a qualquer momento.',
+    highlight: '<strong>Vagas com mais de 3 dias são removidas automaticamente</strong> — a lista sempre fica limpa com apenas oportunidades recentes.',
+    pos: 'top'
+  },
+  {
+    target: 'jlist',
+    emoji: '📋',
+    title: 'Cards de vaga — tudo em um lugar',
+    desc: 'Cada card mostra: título, empresa, descrição, salário, modalidade, fonte e tempo de publicação. A barra colorida embaixo indica quanto tempo a vaga ainda tem antes de expirar.',
+    highlight: '🟢 Verde = menos de 24h · 🟡 Amarelo = 1 a 2 dias · 🔴 Vermelho = prestes a expirar · <strong>Botão ✉ Email abre o Gmail com tudo preenchido!</strong>',
+    pos: 'top'
+  },
+];
+
+let currentStep = 0;
+let tourActive = false;
+
+function startTour() {
+  // Fecha welcome se estiver aberto
+  document.getElementById('welcome').classList.add('hide');
+  setTimeout(() => {
+    document.getElementById('welcome').style.display = 'none';
+  }, 400);
+
+  tourActive = true;
+  currentStep = 0;
+  document.getElementById('tourBackdrop').classList.add('active');
+  document.getElementById('tourBtnFloat').classList.add('hidden');
+
+  // Cria dots
+  const dotsEl = document.getElementById('tipDots');
+  dotsEl.innerHTML = STEPS.map((_,i) => `<span class="tip-dot" id="dot-${i}"></span>`).join('');
+
+  showStep(0);
+}
+
+function skipTour() {
+  document.getElementById('welcome').classList.add('hide');
+  setTimeout(() => {
+    document.getElementById('welcome').style.display = 'none';
+    document.getElementById('tourBtnFloat').classList.remove('hidden');
+  }, 400);
+}
+
+function showStep(idx) {
+  const step = STEPS[idx];
+  const target = document.getElementById(step.target);
+
+  if (!target) { nextStep(); return; }
+
+  // Scroll to element
+  target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+  setTimeout(() => {
+    const rect = target.getBoundingClientRect();
+    const pad = 8;
+
+    // Posiciona spotlight
+    const spot = document.getElementById('tourSpotlight');
+    spot.style.display = 'block';
+    spot.style.top = (rect.top + window.scrollY - pad) + 'px';
+    spot.style.left = (rect.left - pad) + 'px';
+    spot.style.width = (rect.width + pad * 2) + 'px';
+    spot.style.height = (rect.height + pad * 2) + 'px';
+
+    // Posiciona tooltip
+    const tip = document.getElementById('tourTip');
+    tip.style.display = 'block';
+    tip.className = 'tour-tip';
+
+    const tipW = Math.min(300, window.innerWidth - 40);
+    let tipLeft = rect.left;
+    let tipTop;
+
+    if (step.pos === 'bottom') {
+      tipTop = rect.bottom + window.scrollY + pad + 12;
+      tip.classList.add('tip-bottom');
+    } else {
+      tipTop = rect.top + window.scrollY - 20 - 300;
+      tip.classList.add('tip-top');
+    }
+
+    // Garante que não sai da tela
+    tipLeft = Math.max(16, Math.min(tipLeft, window.innerWidth - tipW - 16));
+    if (tipTop < window.scrollY + 10) tipTop = rect.bottom + window.scrollY + 12;
+
+    tip.style.top = tipTop + 'px';
+    tip.style.left = tipLeft + 'px';
+    tip.style.width = tipW + 'px';
+
+    // Conteúdo
+    document.getElementById('tipEmoji').textContent = step.emoji;
+    document.getElementById('tipTitle').textContent = step.title;
+    document.getElementById('tipDesc').textContent = step.desc;
+    document.getElementById('tipStepLabel').textContent = `Passo ${idx + 1} de ${STEPS.length}`;
+
+    const hl = document.getElementById('tipHighlight');
+    if (step.highlight) {
+      hl.style.display = 'block';
+      hl.innerHTML = step.highlight;
+    } else {
+      hl.style.display = 'none';
+    }
+
+    // Dots
+    document.querySelectorAll('.tip-dot').forEach((d, i) => {
+      d.classList.toggle('on', i === idx);
+    });
+
+    // Botões
+    const prev = document.getElementById('tipPrev');
+    const next = document.getElementById('tipNext');
+    prev.style.display = idx === 0 ? 'none' : 'block';
+
+    if (idx === STEPS.length - 1) {
+      next.outerHTML = `<button class="tip-finish" id="tipNext" onclick="endTour()">✅ Concluir tour</button>`;
+    } else {
+      if (next.className === 'tip-finish') {
+        next.outerHTML = `<button class="tip-next" id="tipNext" onclick="nextStep()">Próximo →</button>`;
+      }
+    }
+
+    // Scroll para o tooltip
+    setTimeout(() => {
+      tip.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }, 200);
+
+  }, 400);
+}
+
+function nextStep() {
+  if (currentStep < STEPS.length - 1) {
+    currentStep++;
+    showStep(currentStep);
+  }
+}
+function prevStep() {
+  if (currentStep > 0) {
+    currentStep--;
+    showStep(currentStep);
+  }
+}
+function endTour() {
+  tourActive = false;
+  document.getElementById('tourBackdrop').classList.remove('active');
+  document.getElementById('tourSpotlight').style.display = 'none';
+  document.getElementById('tourTip').style.display = 'none';
+  document.getElementById('tourBtnFloat').classList.remove('hidden');
+  showToast('Tour concluído! Explore o sistema à vontade 🎉');
+}
+
+// Fechar ao clicar no backdrop
+document.getElementById('tourBackdrop').addEventListener('click', endTour);
+
+// ═══════════════════════════════════════════════════════
+//  APP LOGIC
+// ═══════════════════════════════════════════════════════
+const AGORA=Date.now(), H=3600000, LIMITE=72*H;
+
+const VAGAS=[
+  {id:1,titulo:"Social Media Júnior — Criação de Conteúdo",empresa:"Agência Exemplo Digital",area:"social",nivel:"junior",local:"São Paulo, SP",modo:"Remoto",salario:"R$ 3.500–4.500",salMin:3500,horas:1,fonte:"Indeed",url:"https://br.indeed.com",emailRH:"rh@agenciaexemplo.com.br",descricao:"Criação de conteúdo para redes sociais, calendário editorial e análise de métricas."},
+  {id:2,titulo:"Analista de Marketing Pleno — Digital",empresa:"TechCorp Brasil",area:"marketing",nivel:"pleno",local:"São Paulo, SP",modo:"Híbrido",salario:"R$ 5.000–7.000",salMin:5000,horas:2,fonte:"LinkedIn",url:"https://linkedin.com/jobs",emailRH:"recrutamento@techcorp.com.br",descricao:"Gestão de campanhas digitais, SEO, mídia paga e relatórios de performance."},
+  {id:3,titulo:"Designer UX/UI Pleno",empresa:"StartupX",area:"design",nivel:"pleno",local:"Remoto",modo:"Remoto",salario:"R$ 5.500–7.000",salMin:5500,horas:3,fonte:"Gupy",url:"https://portal.gupy.io",emailRH:"vagas@startupx.com.br",descricao:"Interfaces em Figma, prototipagem, testes de usabilidade e design system."},
+  {id:4,titulo:"Analista de TI Júnior — Suporte",empresa:"Empresa Global SA",area:"ti",nivel:"junior",local:"Campinas, SP",modo:"Presencial",salario:"R$ 3.500–4.500",salMin:3500,horas:4,fonte:"Jobbol",url:"https://br.jooble.org",emailRH:"rh@empresaglobal.com.br",descricao:"Suporte N1/N2, atendimento a usuários e manutenção de sistemas."},
+  {id:5,titulo:"Social Media Pleno — E-commerce",empresa:"Loja Virtual Brasil",area:"social",nivel:"pleno",local:"São Paulo, SP",modo:"Híbrido",salario:"R$ 4.500–6.000",salMin:4500,horas:5,fonte:"Indeed",url:"https://br.indeed.com",emailRH:"rh@lojavirtualbrasil.com.br",descricao:"Redes sociais do e-commerce, campanhas pagas e orgânicas."},
+  {id:6,titulo:"Analista de Marketing Júnior — Conteúdo",empresa:"Conteúdo & Co",area:"marketing",nivel:"junior",local:"Remoto",modo:"Remoto",salario:"R$ 3.500–4.800",salMin:3500,horas:6,fonte:"LinkedIn",url:"https://linkedin.com/jobs",emailRH:"jobs@conteudoco.com.br",descricao:"Blog, email marketing, redes sociais e materiais institucionais."},
+  {id:7,titulo:"Designer Gráfico Júnior — Digital",empresa:"Criativa Agência",area:"design",nivel:"junior",local:"Remoto",modo:"Remoto",salario:"R$ 3.600–4.800",salMin:3600,horas:7,fonte:"Catho",url:"https://www.catho.com.br",emailRH:"vagas@criativaagencia.com.br",descricao:"Peças gráficas para redes sociais, apresentações e email marketing."},
+  {id:8,titulo:"Desenvolvedor Full Stack Júnior",empresa:"DevHouse",area:"ti",nivel:"junior",local:"Remoto",modo:"Remoto",salario:"R$ 3.800–5.000",salMin:3800,horas:8,fonte:"LinkedIn",url:"https://linkedin.com/jobs",emailRH:"tech@devhouse.com.br",descricao:"React, Node.js e APIs REST em ambiente ágil."},
+  {id:9,titulo:"Coordenador de Marketing Digital",empresa:"Grupo Comercial XYZ",area:"marketing",nivel:"coordenador",local:"São Paulo, SP",modo:"Presencial",salario:"R$ 6.500–8.000",salMin:6500,horas:10,fonte:"Gupy",url:"https://portal.gupy.io",emailRH:"rh@grupoxyz.com.br",descricao:"Liderança da equipe de marketing digital, planejamento e resultados."},
+  {id:10,titulo:"Social Media Sênior — Estratégia",empresa:"Marca Premium",area:"social",nivel:"senior",local:"São Paulo, SP",modo:"Híbrido",salario:"R$ 6.000–7.500",salMin:6000,horas:12,fonte:"Emprega Campinas",url:"https://www.empregacampinas.com.br",emailRH:"pessoas@marcapremium.com.br",descricao:"Liderança de estratégia de social media, gestão de equipe e influenciadores."},
+  {id:11,titulo:"Analista de TI Pleno — Infraestrutura",empresa:"Tech Solutions",area:"ti",nivel:"pleno",local:"São Paulo, SP",modo:"Híbrido",salario:"R$ 5.500–7.000",salMin:5500,horas:14,fonte:"Jobbol",url:"https://br.jooble.org",emailRH:"rh@techsolutions.com.br",descricao:"Redes, servidores e serviços em nuvem corporativa."},
+  {id:12,titulo:"Designer Gráfico Pleno — Branding",empresa:"Studio Criativo",area:"design",nivel:"pleno",local:"São Paulo, SP",modo:"Presencial",salario:"R$ 5.000–6.500",salMin:5000,horas:16,fonte:"Indeed",url:"https://br.indeed.com",emailRH:"vagas@studiocriativo.com.br",descricao:"Branding, identidade visual, campanhas e materiais gráficos."},
+];
+
+VAGAS.forEach(v=>{ v.postedAt=AGORA-(v.horas*H); });
+let VG=VAGAS.filter(v=>v.salMin>=3500&&v.salMin<=7000&&(AGORA-v.postedAt)<=LIMITE);
+let fA="todas",fN="todos",fM="todas",fF="todas",cd=300,vagaAtual=null;
+let saved=new Set(),sent=new Set();
+try{saved=new Set(JSON.parse(localStorage.getItem("demo_saved")||"[]"));sent=new Set(JSON.parse(localStorage.getItem("demo_sent")||"[]"));}catch(e){}
+function saveLS(){try{localStorage.setItem("demo_saved",JSON.stringify([...saved]));localStorage.setItem("demo_sent",JSON.stringify([...sent]));}catch(e){}}
+function toggleSave(id){if(saved.has(id))saved.delete(id);else saved.add(id);saveLS();render();}
+
+function setF(tipo,val,el){
+  if(tipo==="a")fA=val;else if(tipo==="n")fN=val;else if(tipo==="m")fM=val;else fF=val;
+  document.querySelectorAll(`.chip[data-g="${tipo}"]`).forEach(c=>c.classList.remove("on"));
+  el.classList.add("on");render();
+}
+function getFilt(){
+  const q=(document.getElementById("srch").value||"").toLowerCase();
+  return VG.filter(v=>
+    (fA==="todas"||v.area===fA)&&(fN==="todos"||v.nivel===fN)&&
+    (fM==="todas"||v.modo===fM)&&(fF==="todas"||v.fonte===fF)&&
+    (!q||v.titulo.toLowerCase().includes(q)||v.empresa.toLowerCase().includes(q))
+  );
+}
+function fmtH(p){
+  const diff=AGORA-p,min=Math.floor(diff/60000),hr=Math.floor(diff/H),d=Math.floor(diff/(H*24));
+  if(min<2)return"agora mesmo";if(min<60)return min+"min atrás";if(hr<24)return hr+"h atrás";if(d===1)return"ontem";return d+"d atrás";
+}
+const aC={marketing:"ta",social:"ts",design:"td",ti:"tt"};
+const aN={marketing:"Marketing",social:"Social",design:"Design",ti:"TI"};
+const mC={Remoto:"tr",Híbrido:"th",Presencial:"tp"};
+const sC={Indeed:"tsi",LinkedIn:"tsl",Gupy:"tsg",Catho:"tsc",Jobbol:"tsj","Emprega Campinas":"tse"};
+const bC={Indeed:"ci",LinkedIn:"cl",Gupy:"cg",Catho:"cc",Jobbol:"cj","Emprega Campinas":"ce"};
+function nT(n){return n.charAt(0).toUpperCase()+n.slice(1);}
+function pct(v){return Math.max(2,Math.round((1-(AGORA-v.postedAt)/LIMITE)*100));}
+function cor(v){return(AGORA-v.postedAt)<(24*H)?'var(--gr)':(AGORA-v.postedAt)<(48*H)?'var(--am)':'var(--pk)';}
+function hR(v){return Math.max(1,Math.round((LIMITE-(AGORA-v.postedAt))/H));}
+
+function render(){
+  const srt=document.getElementById("srt").value;
+  let jobs=getFilt();
+  if(srt==="sal")jobs.sort((a,b)=>b.salMin-a.salMin);
+  else if(srt==="az")jobs.sort((a,b)=>a.empresa.localeCompare(b.empresa));
+  else if(srt==="saved")jobs.sort((a,b)=>(saved.has(b.id)?1:0)-(saved.has(a.id)?1:0));
+  else jobs.sort((a,b)=>b.postedAt-a.postedAt);
+
+  document.getElementById("st0").textContent=VG.length;
+  document.getElementById("st1").textContent=VG.filter(v=>v.area==="marketing").length;
+  document.getElementById("st2").textContent=VG.filter(v=>v.area==="social").length;
+  document.getElementById("st3").textContent=VG.filter(v=>v.area==="design").length;
+  document.getElementById("st4").textContent=VG.filter(v=>v.area==="ti").length;
+  document.getElementById("n-saved").textContent=saved.size;
+  document.getElementById("n-sent").textContent=sent.size;
+  document.getElementById("fcnt").textContent=jobs.length+" vaga"+(jobs.length!==1?"s":"");
+  const now=new Date();
+  document.getElementById("ftime").textContent=String(now.getHours()).padStart(2,"0")+":"+String(now.getMinutes()).padStart(2,"0");
+
+  const list=document.getElementById("jlist");
+  if(!jobs.length){list.innerHTML=`<div class="empty"><div style="font-size:36px">🔍</div><p style="color:var(--tx2);margin-top:10px">Nenhuma vaga encontrada</p></div>`;return;}
+
+  list.innerHTML=jobs.map(v=>{
+    const sv=saved.has(v.id),sn=sent.has(v.id);
+    return `<div class="jcard ${bC[v.fonte]||''} ${sv?'saved-card':''} ${sn?'sent-card':''}">
+      <div class="jinfo">
+        <div class="jtitle">${v.titulo}</div>
+        <div class="jco"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>${v.empresa}</div>
+        <div class="jdesc">${v.descricao}</div>
+      </div>
+      <div class="jtags">
+        <span class="tag ${aC[v.area]||'ta'}">${aN[v.area]||v.area}</span>
+        <span class="tag tnv">${nT(v.nivel)}</span>
+        <span class="tag ${mC[v.modo]||'tp'}">${v.modo}</span>
+        <span class="tag tsal">💰 ${v.salario}</span>
+        ${(AGORA-v.postedAt)<H?'<span class="tag tnew" style="background:var(--gr)">⚡ AGORA</span>':''}
+        ${(AGORA-v.postedAt)<(3*H)?'<span class="tag tnew">🔥 NOVA</span>':''}
+        ${sn?'<span class="tag tsent">✉ Enviada</span>':''}
+        <span class="tag ${sC[v.fonte]||''}">${v.fonte}</span>
+      </div>
+      <div class="expiry-bar-wrap"><div class="expiry-bar" style="width:${pct(v)}%;background:${cor(v)}"></div></div>
+      <div class="expiry-label">Expira em ${hR(v)}h · removida automaticamente após 3 dias</div>
+      <div class="jbtns">
+        <a class="bver" href="${v.url}" target="_blank" rel="noopener">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>Ver vaga
+        </a>
+        <button class="bemail" onclick="abrirModal(${v.id})">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>✉ Email
+        </button>
+        <button class="bsave ${sv?'saved-on':''}" onclick="toggleSave(${v.id})">${sv?'⭐ Salva':'☆ Salvar'}</button>
+      </div>
+      <div class="jmeta">
+        <span><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>${v.local}</span>
+        <span><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>${fmtH(v.postedAt)}</span>
+        <span class="email-chip"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>${v.emailRH}</span>
+      </div>
+    </div>`;
+  }).join("");
+
+  // Re-posiciona tooltip do tour se ativo
+  if(tourActive) setTimeout(()=>showStep(currentStep), 300);
+}
+
+function abrirModal(id){
+  vagaAtual=VG.find(v=>v.id===id);
+  if(!vagaAtual)return;
+  document.getElementById("md-sub").textContent=`${vagaAtual.titulo} · ${vagaAtual.empresa}`;
+  document.getElementById("md-para").textContent=vagaAtual.emailRH;
+  document.getElementById("md-co").textContent=`${vagaAtual.empresa} · ${vagaAtual.local} · ${vagaAtual.modo}`;
+  document.getElementById("md-assunto").value=`Candidatura — ${vagaAtual.titulo} | Seu Nome`;
+  document.getElementById("md-body").value=
+`Prezado(a) time de Recrutamento da ${vagaAtual.empresa},
+
+Meu nome é [Seu Nome] e me candidato à vaga de ${vagaAtual.titulo} (${nT(vagaAtual.nivel)}), publicada em ${vagaAtual.fonte}.
+
+[Na versão real, este texto é gerado automaticamente com base na área da vaga, com seu nome, email e cidade já preenchidos.]
+
+Segue currículo em anexo para análise.
+
+Atenciosamente,
+[Seu Nome] · seuemail@gmail.com · Campinas, SP`;
+  document.getElementById("modal").classList.add("open");
+  document.body.style.overflow="hidden";
+}
+function closeModal(){
+  document.getElementById("modal").classList.remove("open");
+  document.body.style.overflow="";
+  vagaAtual=null;
+}
+document.getElementById("modal").addEventListener("click",e=>{if(e.target===document.getElementById("modal"))closeModal();});
+
+function showToast(msg){
+  const t=document.getElementById("toast");
+  document.getElementById("tmsg").textContent=msg;
+  t.classList.add("show");
+  setTimeout(()=>t.classList.remove("show"),4000);
+}
+function doRefresh(){
+  document.getElementById("ftime").textContent="...";
+  cd=300;
+  const exp=VG.filter(v=>(Date.now()-v.postedAt)>LIMITE);
+  exp.forEach(v=>{const i=VG.findIndex(x=>x.id===v.id);if(i>-1)VG.splice(i,1);});
+  setTimeout(()=>{render();showToast(exp.length>0?`🗑️ ${exp.length} vaga(s) expirada(s) removida(s)`:"✅ Atualizado!");},600);
+}
+document.getElementById("srch").addEventListener("input",render);
+document.getElementById("srt").addEventListener("change",render);
+setInterval(()=>{
+  cd--;
+  if(cd<=0){cd=300;doRefresh();}
+  const m=Math.floor(cd/60),s=cd%60;
+  const el=document.getElementById("cdtxt");if(el)el.textContent=m+":"+(s<10?"0":"")+s;
+  const pb=document.getElementById("pbar");if(pb)pb.style.width=Math.round((1-cd/300)*100)+"%";
+  const tb=document.getElementById("tbar");if(tb)tb.style.width=Math.round((1-cd/300)*100)+"%";
+},1000);
+
+render();
+</script>
+</body>
+</html>
